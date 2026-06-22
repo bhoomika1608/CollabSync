@@ -1,0 +1,13 @@
+{
+  "name": "collabsync-demo",
+  "version": "1.0.0",
+  "description": "Cross-instance Redis pub-sub verification script for CollabSync",
+  "main": "cross-instance-test.js",
+  "scripts": {
+    "test": "node cross-instance-test.js"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.7.5",
+    "yjs": "^13.6.14"
+  }
+}

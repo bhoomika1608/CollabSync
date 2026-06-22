@@ -1,0 +1,171 @@
+# ═══════════════════════════════════════════════════════════════
+# CollabSync — Docker Compose orchestration
+#
+# Services
+# ─────────
+#  redis    — Redis 7 (pub-sub message bus between server instances)
+#  mongo    — MongoDB 7 (document snapshot persistence, Task C)
+#  server1  — CollabSync backend instance 1  (internal :3001, host :3001)
+#  server2  — CollabSync backend instance 2  (internal :3001, host :3002)
+#  nginx    — Reverse proxy / load balancer   (host :80)
+#
+# WHY two named services (server1, server2) instead of --scale?
+# ──────────────────────────────────────────────────────────────
+# --scale creates N anonymous replicas that all bind the same container
+# port, causing a host-port collision when publishing. Named services let
+# us expose server1:3001 and server2:3002 on the host, which allows the
+# cross-instance demo script to target each instance directly (bypassing
+# nginx) and confirm that the Redis adapter is doing the bridging.
+# ═══════════════════════════════════════════════════════════════
+
+services:
+
+  # ── Redis ───────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"          # exposed for redis-cli debugging on host
+    command: >
+      redis-server
+      --save ""              
+      --appendonly no
+    # WHY disable persistence on Redis?
+    # Redis is our message bus, not a durable store. Durability is
+    # handled by MongoDB snapshots (Task C). Disabling RDB snapshots
+    # and AOF keeps Redis latency low and removes I/O pressure on the
+    # container filesystem.
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks:
+      - collabsync
+
+  # ── MongoDB ─────────────────────────────────────────────────
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"        # exposed for mongosh debugging on host
+    volumes:
+      - mongo_data:/data/db  # persist across container restarts
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')", "--quiet"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - collabsync
+
+  # ── Backend instance 1 ──────────────────────────────────────
+  server1:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: 3001
+      REDIS_URL: redis://redis:6379
+      MONGO_URI: mongodb://mongo:27017/collabsync
+      CLIENT_ORIGIN: http://localhost
+      NODE_ENV: production
+      INSTANCE_ID: server1        # appears in every log line
+      SNAPSHOT_INTERVAL_MS: 30000
+    ports:
+      - "3001:3001"               # direct access for demo/test script
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e",
+        "require('http').get('http://localhost:3001/api/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - collabsync
+
+  # ── Backend instance 2 ──────────────────────────────────────
+  server2:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: 3001                  # internal port is always 3001 …
+      REDIS_URL: redis://redis:6379
+      MONGO_URI: mongodb://mongo:27017/collabsync
+      CLIENT_ORIGIN: http://localhost
+      NODE_ENV: production
+      INSTANCE_ID: server2
+      SNAPSHOT_INTERVAL_MS: 30000
+    ports:
+      - "3002:3001"               # … but mapped to host port 3002
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e",
+        "require('http').get('http://localhost:3001/api/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - collabsync
+
+  # ── nginx load balancer ─────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"                   # all client traffic enters here
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      server1:
+        condition: service_healthy
+      server2:
+        condition: service_healthy
+    networks:
+      - collabsync
+
+  # ── Frontend client ─────────────────────────────────────────
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_PROXY_TARGET: http://nginx:80
+    depends_on:
+      - nginx
+    networks:
+      - collabsync
+
+# ── Volumes ─────────────────────────────────────────────────────
+volumes:
+  mongo_data:
+    driver: local
+
+# ── Networks ────────────────────────────────────────────────────
+networks:
+  collabsync:
+    driver: bridge
+    # WHY a dedicated bridge network?
+    # Services on the same bridge network resolve each other by service
+    # name (e.g., "redis", "mongo"). This lets server1 use
+    # REDIS_URL=redis://redis:6379 without knowing the container IP.
+    # Isolation also means the collabsync services can't accidentally
+    # reach unrelated containers on the default bridge.

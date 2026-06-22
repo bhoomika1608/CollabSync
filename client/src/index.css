@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base Reset ─────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #030712;
+  color: #f1f5f9;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar styling ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* ── CodeMirror overrides ───────────────────────────────────── */
+
+/* Make the editor fill its container */
+.cm-editor {
+  height: 100%;
+  outline: none !important;
+}
+.cm-scroller {
+  overflow: auto;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 14px;
+  line-height: 1.7;
+}
+/* Match our bg exactly with oneDark theme bg */
+.cm-editor.cm-focused { outline: none !important; }
+
+/* ── Remote cursor styles ───────────────────────────────────── */
+.cm-remote-cursor {
+  position: relative;
+  display: inline-block;
+  pointer-events: none;
+}
+.cm-remote-cursor-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.15em;
+  background: var(--cursor-color, #888);
+  margin-left: -1px;
+  vertical-align: text-bottom;
+  border-radius: 1px;
+  animation: cursor-blink 1.2s ease-in-out infinite;
+}
+.cm-remote-cursor-label {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  background: var(--cursor-color, #888);
+  color: #fff;
+  font-size: 10px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px 4px 4px 0;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 200;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.cm-remote-cursor:hover .cm-remote-cursor-label,
+.cm-remote-cursor-label.always-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+/* Always show label so users can see cursors immediately */
+.cm-remote-cursor-label {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ── Utility animations ─────────────────────────────────────── */
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+.pulse-ring::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
