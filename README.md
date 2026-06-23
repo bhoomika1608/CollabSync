@@ -6,6 +6,37 @@ CollabSync is a premium, full-stack real-time collaborative text editor that all
 
 ---
 
+## 🎬 Demo
+
+> 📹 **[Watch the full demo video on Google Drive](https://drive.google.com/file/d/1xKcxN19UTWdKrqYNR08DANJYdh6Jca8t/view?usp=drive_link)**
+
+---
+
+## 📸 Screenshots
+
+### 1. Display Name Prompt on Load
+![Step 1 – Display Name Prompt](Screenshots/step1_load_page_1782198347570.png)
+
+### 2. Single User Connected (Bhoomika)
+![Step 2 – Bhoomika Connected](Screenshots/step2_user_bhoomika_fixed_1782198460810.png)
+
+### 3. Second User Joins (Alice – Display Name Modal)
+![Step 3 – Alice Joins](Screenshots/step3_user_alice_1782198540142.png)
+
+### 4. Two Collaborators Active – Cursor Presence Visible
+![Step 4 – Two Users with Cursors](Screenshots/step4_user_alice_final_1782198663568.png)
+
+### 5. Bhoomika Typing – Alice's Cursor Visible in Real-Time
+![Step 5 – Bhoomika Typing](Screenshots/step5_bhoomika_typing_1782198751470.png)
+
+### 6. Simultaneous Editing – Both Cursors Shown
+![Step 6 – Simultaneous Presence](Screenshots/step6_presence_list_1782198816754.png)
+
+### 7. Separate Document Workspace (Multi-Doc Routing)
+![Step 7 – Separate Document](Screenshots/step7_separate_doc_1782198905446.png)
+
+---
+
 ## 🎯 Key Features
 
 - 🔄 **Real-Time Yjs Document Sync**
